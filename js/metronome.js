@@ -16,13 +16,13 @@ class Metronome {
     #tempo = 120.0; 
     // When the next note is due (sec).
     #nextNoteTime = 0.0; 
-    // What note is currently last scheduled ?
+    // What 16th note is currently last scheduled ?
     #current16thNote; 
     // The notes that have been put into the web audio and may or may not have played yet. {note, time}
     #notesInQueue = []; 
     // 0 == 16th, 1 == 8th, 2 == quarter note
     #noteResolution = 0; 
-    // How far ahead to schedule audio (sec)
+    // How far ahead to schedule audio (sec). (0.1 sec => 100 milliseconds) 
     #scheduleAheadTime = 0.1;
     // Length of "beep" (in seconds).
     #noteLength = 0.05; 
@@ -114,22 +114,24 @@ class Metronome {
     }
 
     #scheduler() {
-      // While there are notes that will need to play before the next interval,
-      // schedule them and advance the pointer.
-      while (this.#nextNoteTime < this.#audioContext.currentTime + this.#scheduleAheadTime) {
-          this.#scheduleNote(this.#current16thNote, this.#nextNoteTime);
-          this.#nextNote();
-      }
+        // While there are notes that will need to play before the next interval,
+        // schedule them and advance the pointer.
+        while (this.#nextNoteTime < this.#audioContext.currentTime + this.#scheduleAheadTime) {
+            this.#scheduleNote(this.#current16thNote, this.#nextNoteTime);
+            this.#nextNote();
+        }
     }
 
     // Declare draw() as an arrow function or 'this' won't be available. 
+    // Note: The requestAnimationFrame's timestamp parameter is not used here.
+    //       Instead, the audio system clock (currentTime) is used to keep track of time.
     #draw = (timestamp) => {
         let currentNote = this.#last16thNoteDrawn;
 
         if (this.#audioContext) {
             let currentTime = this.#audioContext.currentTime;
 
-            // The older note in queue has been played (or is playing).
+            // The older note in queue has been played, is playing or about to be played, (notesInQueue[0].time is a delayed time).
             while (this.#notesInQueue.length && this.#notesInQueue[0].time < currentTime) {
                 currentNote = this.#notesInQueue[0].note;
                 // Remove note from queue.
